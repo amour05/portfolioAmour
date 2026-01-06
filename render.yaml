@@ -10,3 +10,15 @@ services:
         value: production
       - key: APP_KEY
         value: base64:nkJSFc9S2pdDdTvWLTqRkWDzHyjDB/WYUHFDMN9SB6A=
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        value: 127.0.0.1  # à remplacer par l’hôte Render ou ton serveur MySQL
+      - key: DB_PORT
+        value: 3306
+      - key: DB_DATABASE
+        value: portofolioamour
+      - key: DB_USERNAME
+        value: root
+      - key: DB_PASSWORD
+        value: ${DATABASE_PASSWORD}
