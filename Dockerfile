@@ -19,9 +19,6 @@ COPY . .
 # Installer les dépendances Laravel
 RUN composer install --no-dev --optimize-autoloader
 
-# Générer la clé Laravel (si APP_KEY n’est pas défini)
-RUN php artisan key:generate
-
 # Exposer le port
 EXPOSE 8000
 
