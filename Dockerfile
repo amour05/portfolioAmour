@@ -22,8 +22,8 @@ RUN composer install --no-dev --optimize-autoloader
 # Donner les bons droits à Laravel
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
 
-# Exposer le port
+# Exposer le port (Railway utilisera $PORT)
 EXPOSE 8000
 
-# Lancer le serveur Laravel
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Lancer le serveur Laravel en utilisant la variable $PORT
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=$PORT"]
