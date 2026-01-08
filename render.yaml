@@ -16,12 +16,12 @@ services:
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
-        value: dpg-d5fbpt8gjchc73c7dnt0-a   # remplace par l’hôte PostgreSQL fourni par Render
+        value: dpg-d5fbpt8gjchc73c7dnt0-a.oregon-postgres.render.com   # uniquement le host
       - key: DB_PORT
         value: 5432
       - key: DB_DATABASE
-        value: portfolioamour                   # remplace par le nom exact de ta base Render
+        value: portfolioamour
       - key: DB_USERNAME
-        value: portfolioamour_user              # remplace par l’utilisateur Render
+        value: portfolioamour_user
       - key: DB_PASSWORD
-        value: tmcuiHnCcX8OfhoQ9LgbbepAjVBTxbiw              # remplace par le mot de passe Render
+        value: tmcuiHnCcX8OfhoQ9LgbbepAjVBTxbiw
