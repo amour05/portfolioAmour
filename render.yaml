@@ -4,21 +4,24 @@ services:
     env: docker
     plan: free
     branch: main
-    startCommand: "php artisan serve --host=0.0.0.0 --port=8000"
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php artisan migrate --force
+    startCommand: "php artisan serve --host=0.0.0.0 --port=$PORT"
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_KEY
         value: base64:nkJSFc9S2pdDdTvWLTqRkWDzHyjDB/WYUHFDMN9SB6A=
       - key: DB_CONNECTION
-        value: mysql
+        value: pgsql
       - key: DB_HOST
-        value: 127.0.0.1  # à remplacer par l’hôte Render ou ton serveur MySQL
+        value: dpg-d5fbpt8gjchc73c7dnt0-a   # remplace par l’hôte PostgreSQL fourni par Render
       - key: DB_PORT
-        value: 3306
+        value: 5432
       - key: DB_DATABASE
-        value: portofolioamour
+        value: portfolioamour                   # remplace par le nom exact de ta base Render
       - key: DB_USERNAME
-        value: root
+        value: portfolioamour_user              # remplace par l’utilisateur Render
       - key: DB_PASSWORD
-        value: ${DATABASE_PASSWORD}
+        value: tmcuiHnCcX8OfhoQ9LgbbepAjVBTxbiw              # remplace par le mot de passe Render

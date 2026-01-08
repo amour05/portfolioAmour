@@ -13,8 +13,9 @@ RUN npm run build \
 # Stage 2 : image PHP finale
 FROM php:8.2-cli
 RUN apt-get update && apt-get install -y \
-    unzip git libzip-dev default-mysql-client \
-    && docker-php-ext-install pdo pdo_mysql zip
+    unzip git libzip-dev libpq-dev \
+    && docker-php-ext-install pdo pdo_pgsql zip
+
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
