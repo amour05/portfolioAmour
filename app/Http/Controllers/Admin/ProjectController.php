@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProjectController extends Controller
 {
@@ -26,7 +28,14 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('projects','public');
+            $file = $request->file('image');
+            // nom unique et lisible
+            $filename = time().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
+                        .'.'.$file->getClientOriginalExtension();
+
+            // stockage dans storage/app/public/projects
+            $file->storeAs('projects', $filename, 'public');
+            $data['image'] = 'projects/'.$filename;
         }
 
         Project::create($data);
@@ -49,7 +58,17 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('projects','public');
+            // supprimer l’ancienne image si elle existe
+            if ($project->image && Storage::disk('public')->exists($project->image)) {
+                Storage::disk('public')->delete($project->image);
+            }
+
+            $file = $request->file('image');
+            $filename = time().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
+                        .'.'.$file->getClientOriginalExtension();
+
+            $file->storeAs('projects', $filename, 'public');
+            $data['image'] = 'projects/'.$filename;
         }
 
         $project->update($data);
@@ -57,7 +76,14 @@ class ProjectController extends Controller
     }
 
     public function destroy($id) {
-        Project::destroy($id);
+        $project = Project::findOrFail($id);
+
+        // supprimer l’image associée si elle existe
+        if ($project->image && Storage::disk('public')->exists($project->image)) {
+            Storage::disk('public')->delete($project->image);
+        }
+
+        $project->delete();
         return redirect()->route('admin.projects.index')->with('success','Projet supprimé');
     }
 }
