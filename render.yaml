@@ -7,6 +7,7 @@ services:
     buildCommand: |
       composer install --no-dev --optimize-autoloader
       php artisan migrate --force
+       php artisan storage:link
     startCommand: "php artisan serve --host=0.0.0.0 --port=$PORT"
     envVars:
       - key: APP_ENV
