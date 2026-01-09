@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class ProjectController extends Controller
 {
@@ -28,14 +28,13 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            // nom unique et lisible
-            $filename = time().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
-                        .'.'.$file->getClientOriginalExtension();
+            // Upload vers Cloudinary
+            $uploadedFileUrl = Cloudinary::upload(
+                $request->file('image')->getRealPath(),
+                ['folder' => 'projects'] // Cloudinary crée automatiquement le dossier
+            )->getSecurePath();
 
-            // stockage dans storage/app/public/projects
-            $file->storeAs('projects', $filename, 'public');
-            $data['image'] = 'projects/'.$filename;
+            $data['image'] = $uploadedFileUrl; // URL complète Cloudinary
         }
 
         Project::create($data);
@@ -58,17 +57,13 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            // supprimer l’ancienne image si elle existe
-            if ($project->image && Storage::disk('public')->exists($project->image)) {
-                Storage::disk('public')->delete($project->image);
-            }
+            // Upload nouvelle image vers Cloudinary
+            $uploadedFileUrl = Cloudinary::upload(
+                $request->file('image')->getRealPath(),
+                ['folder' => 'projects']
+            )->getSecurePath();
 
-            $file = $request->file('image');
-            $filename = time().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
-                        .'.'.$file->getClientOriginalExtension();
-
-            $file->storeAs('projects', $filename, 'public');
-            $data['image'] = 'projects/'.$filename;
+            $data['image'] = $uploadedFileUrl;
         }
 
         $project->update($data);
@@ -78,10 +73,9 @@ class ProjectController extends Controller
     public function destroy($id) {
         $project = Project::findOrFail($id);
 
-        // supprimer l’image associée si elle existe
-        if ($project->image && Storage::disk('public')->exists($project->image)) {
-            Storage::disk('public')->delete($project->image);
-        }
+        // ⚠️ Optionnel : supprimer l’image Cloudinary
+        // Cloudinary::destroy($publicId); 
+        // (il faudrait stocker le public_id en DB si tu veux gérer ça)
 
         $project->delete();
         return redirect()->route('admin.projects.index')->with('success','Projet supprimé');
