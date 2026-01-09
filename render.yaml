@@ -7,7 +7,6 @@ services:
     buildCommand: |
       composer install --no-dev --optimize-autoloader
       php artisan migrate --force
-       php artisan storage:link
     startCommand: "php artisan serve --host=0.0.0.0 --port=$PORT"
     envVars:
       - key: APP_ENV
@@ -26,3 +25,5 @@ services:
         value: portfolioamour_user
       - key: DB_PASSWORD
         value: tmcuiHnCcX8OfhoQ9LgbbepAjVBTxbiw
+      - key: CLOUDINARY_URL
+        value: cloudinary://835812869114161:186ptZ4XKZvY1gS6XDLHPRnWoxs@dqsbkwqd1
