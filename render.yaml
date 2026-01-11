@@ -28,5 +28,9 @@ services:
         value: portfolioamour_user
       - key: DB_PASSWORD
         value: tmcuiHnCcX8OfhoQ9LgbbepAjVBTxbiw
-      - key: CLOUDINARY_URL
-        value: cloudinary://835812869114161:186ptZ4XKZvY1gS6XDLHPRnWoxs@dqsbkwqd1
+      - key: CLOUDINARY_API_KEY
+        value: 835812869114161
+      - key: CLOUDINARY_API_SECRET
+        value: 186ptZ4XKZvY1gS6XDLHPRnWoxs
+      - key: CLOUDINARY_CLOUD_NAME
+        value: dqsbkwqd1
