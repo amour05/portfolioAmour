@@ -34,3 +34,5 @@ services:
         value: 186ptZ4XKZvY1gS6XDLHPRnWoxs
       - key: CLOUDINARY_CLOUD_NAME
         value: dqsbkwqd1
+      - key: CLOUDINARY_URL
+        value: cloudinary://835812869114161:186ptZ4XKZvY1gS6XDLHPRnWoxs@dqsbkwqd1
