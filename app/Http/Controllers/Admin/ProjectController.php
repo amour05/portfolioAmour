@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class ProjectController extends Controller
@@ -41,15 +42,31 @@ class ProjectController extends Controller
             }
 
             try {
+                $file = $request->file('image');
+                if (!method_exists($file, 'isValid') || !$file->isValid()) {
+                    return back()->withErrors(['image' => 'Fichier image invalide ou corrompu.'])->withInput();
+                }
+
                 // Upload vers Cloudinary
                 $uploadedFile = Cloudinary::upload(
-                    $request->file('image')->getRealPath(),
+                    $file->getRealPath(),
                     ['folder' => 'projects']
                 );
 
-                $data['image'] = $uploadedFile->getSecurePath(); // URL complète Cloudinary
+                // Supporter différentes formes de retour (array ou objet selon la lib)
+                if (is_array($uploadedFile) && isset($uploadedFile['secure_url'])) {
+                    $data['image'] = $uploadedFile['secure_url'];
+                } elseif (is_object($uploadedFile) && method_exists($uploadedFile, 'getSecurePath')) {
+                    $data['image'] = $uploadedFile->getSecurePath();
+                } elseif (is_object($uploadedFile) && method_exists($uploadedFile, 'getSecureUrl')) {
+                    $data['image'] = $uploadedFile->getSecureUrl();
+                } else {
+                    Log::error('Cloudinary upload returned unexpected result', ['result' => $uploadedFile]);
+                    return back()->withErrors(['image' => 'Erreur lors de l’upload de l’image (réponse inattendue).'])->withInput();
+                }
 
             } catch (\Exception $e) {
+                Log::error('Cloudinary upload failed', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
                 return back()->withErrors([
                     'image' => 'Erreur lors de l’upload de l’image : ' . $e->getMessage()
                 ])->withInput();
@@ -90,15 +107,30 @@ class ProjectController extends Controller
             }
 
             try {
+                $file = $request->file('image');
+                if (!method_exists($file, 'isValid') || !$file->isValid()) {
+                    return back()->withErrors(['image' => 'Fichier image invalide ou corrompu.'])->withInput();
+                }
+
                 // Upload nouvelle image vers Cloudinary
                 $uploadedFile = Cloudinary::upload(
-                    $request->file('image')->getRealPath(),
+                    $file->getRealPath(),
                     ['folder' => 'projects']
                 );
 
-                $data['image'] = $uploadedFile->getSecurePath();
+                if (is_array($uploadedFile) && isset($uploadedFile['secure_url'])) {
+                    $data['image'] = $uploadedFile['secure_url'];
+                } elseif (is_object($uploadedFile) && method_exists($uploadedFile, 'getSecurePath')) {
+                    $data['image'] = $uploadedFile->getSecurePath();
+                } elseif (is_object($uploadedFile) && method_exists($uploadedFile, 'getSecureUrl')) {
+                    $data['image'] = $uploadedFile->getSecureUrl();
+                } else {
+                    Log::error('Cloudinary upload returned unexpected result', ['result' => $uploadedFile]);
+                    return back()->withErrors(['image' => 'Erreur lors de l’upload de l’image (réponse inattendue).'])->withInput();
+                }
 
             } catch (\Exception $e) {
+                Log::error('Cloudinary upload failed', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
                 return back()->withErrors([
                     'image' => 'Erreur lors de l’upload de l’image : ' . $e->getMessage()
                 ])->withInput();
