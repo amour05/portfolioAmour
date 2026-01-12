@@ -7,7 +7,6 @@ use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class ProjectController extends Controller
 {
@@ -36,9 +35,9 @@ class ProjectController extends Controller
             $file = $request->file('image');
 
             try {
-                $data['image'] = $this->uploadToCloudinary($file);
+                $data['image'] = $this->storeImageLocally($file);
             } catch (\Throwable $e) {
-                Log::error('Cloudinary upload failed', ['message' => $e->getMessage()]);
+                Log::error('Local image upload failed', ['message' => $e->getMessage()]);
                 return back()->withErrors([
                     'image' => 'Erreur lors de l’upload de l’image : ' . $e->getMessage()
                 ])->withInput();
@@ -74,9 +73,9 @@ class ProjectController extends Controller
             $file = $request->file('image');
 
             try {
-                $data['image'] = $this->uploadToCloudinary($file);
+                $data['image'] = $this->storeImageLocally($file);
             } catch (\Throwable $e) {
-                Log::error('Cloudinary upload failed', ['message' => $e->getMessage()]);
+                Log::error('Local image upload failed', ['message' => $e->getMessage()]);
                 return back()->withErrors([
                     'image' => 'Erreur lors de l’upload de l’image : ' . $e->getMessage()
                 ])->withInput();
@@ -99,48 +98,19 @@ class ProjectController extends Controller
      * @return string
      * @throws \Throwable
      */
-    private function uploadToCloudinary($file)
+    private function storeImageLocally($file)
     {
         if (! $file || ! $file->isValid()) {
             throw new \RuntimeException('Fichier image invalide ou manquant.');
         }
-
-
-        // Si Cloudinary n'est pas configuré, sauvegarde localement dans storage/app/public/projects
-        if (! env('CLOUDINARY_URL')) {
-            $path = $file->store('projects', 'public');
-            return $path; // stocke le chemin relatif (projects/xxx.jpg)
+        // Sauvegarde localement dans storage/app/public/projects et retourne le chemin relatif
+        $path = $file->store('projects', 'public');
+        if (! $path) {
+            throw new \RuntimeException('Impossible d\'enregistrer le fichier.');
         }
 
-        // Utilise uploadFile (compatible avec l'ancienne API) mais gère les différents retours.
-        $result = Cloudinary::uploadFile($file->getRealPath(), ['folder' => 'projects']);
-
-        if (is_array($result)) {
-            if (! empty($result['secure_url'])) {
-                return $result['secure_url'];
-            }
-            if (! empty($result['url'])) {
-                return $result['url'];
-            }
-        }
-
-        if (is_object($result)) {
-            if (method_exists($result, 'getSecurePath')) {
-                return $result->getSecurePath();
-            }
-
-            // certaines versions renvoient un objet ArrayAccess / StdClass
-            $asArray = (array) $result;
-            if (! empty($asArray['secure_url'])) {
-                return $asArray['secure_url'];
-            }
-            if (! empty($asArray['url'])) {
-                return $asArray['url'];
-            }
-        }
-
-            throw new \RuntimeException('Upload Cloudinary : réponse inattendue.');
-        }
+        return $path; // exemple: projects/abcd1234.jpg
+    }
 
     public function destroy($id)
     {
