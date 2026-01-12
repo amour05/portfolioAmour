@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class ProjectController extends Controller
@@ -32,19 +33,10 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            if (!env('CLOUDINARY_URL')) {
-                return back()->withErrors([
-                    'image' => 'Cloudinary n’est pas configuré sur le serveur.'
-                ])->withInput();
-            }
+            $file = $request->file('image');
 
             try {
-                $uploadedFile = Cloudinary::uploadFile(
-                    $request->file('image')->getRealPath(),
-                    ['folder' => 'projects']
-                );
-
-                $data['image'] = $uploadedFile->getSecurePath();
+                $data['image'] = $this->uploadToCloudinary($file);
             } catch (\Throwable $e) {
                 Log::error('Cloudinary upload failed', ['message' => $e->getMessage()]);
                 return back()->withErrors([
@@ -79,19 +71,10 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            if (!env('CLOUDINARY_URL')) {
-                return back()->withErrors([
-                    'image' => 'Cloudinary n’est pas configuré sur le serveur.'
-                ])->withInput();
-            }
+            $file = $request->file('image');
 
             try {
-                $uploadedFile = Cloudinary::uploadFile(
-                    $request->file('image')->getRealPath(),
-                    ['folder' => 'projects']
-                );
-
-                $data['image'] = $uploadedFile->getSecurePath();
+                $data['image'] = $this->uploadToCloudinary($file);
             } catch (\Throwable $e) {
                 Log::error('Cloudinary upload failed', ['message' => $e->getMessage()]);
                 return back()->withErrors([
@@ -100,12 +83,64 @@ class ProjectController extends Controller
             }
         }
 
+        
         $project->update($data);
 
         return redirect()
             ->route('admin.projects.index')
             ->with('success', 'Projet mis à jour');
     }
+
+    /**
+     * Upload helper qui gère différents retours de Cloudinary et vérifie le fichier.
+     * Retourne l'URL sécurisée ou lève une exception.
+     *
+     * @param \Illuminate\Http\UploadedFile|null $file
+     * @return string
+     * @throws \Throwable
+     */
+    private function uploadToCloudinary($file)
+    {
+        if (! $file || ! $file->isValid()) {
+            throw new \RuntimeException('Fichier image invalide ou manquant.');
+        }
+
+
+        // Si Cloudinary n'est pas configuré, sauvegarde localement dans storage/app/public/projects
+        if (! env('CLOUDINARY_URL')) {
+            $path = $file->store('projects', 'public');
+            return Storage::url($path);
+        }
+
+        // Utilise uploadFile (compatible avec l'ancienne API) mais gère les différents retours.
+        $result = Cloudinary::uploadFile($file->getRealPath(), ['folder' => 'projects']);
+
+        if (is_array($result)) {
+            if (! empty($result['secure_url'])) {
+                return $result['secure_url'];
+            }
+            if (! empty($result['url'])) {
+                return $result['url'];
+            }
+        }
+
+        if (is_object($result)) {
+            if (method_exists($result, 'getSecurePath')) {
+                return $result->getSecurePath();
+            }
+
+            // certaines versions renvoient un objet ArrayAccess / StdClass
+            $asArray = (array) $result;
+            if (! empty($asArray['secure_url'])) {
+                return $asArray['secure_url'];
+            }
+            if (! empty($asArray['url'])) {
+                return $asArray['url'];
+            }
+        }
+
+            throw new \RuntimeException('Upload Cloudinary : réponse inattendue.');
+        }
 
     public function destroy($id)
     {
