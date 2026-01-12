@@ -47,9 +47,30 @@ class ProjectController extends Controller
                     return back()->withErrors(['image' => 'Fichier image invalide ou corrompu.'])->withInput();
                 }
 
+                // Déterminer un chemin réel vers le fichier (getRealPath peut retourner null)
+                $realPath = $file->getRealPath();
+                if (!$realPath || !file_exists($realPath)) {
+                    $realPath = $file->getPathname() ?: null;
+                }
+
+                $tmpCreated = false;
+                if (!$realPath || !file_exists($realPath)) {
+                    try {
+                        $tmpPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('upload_') . '.' . ($file->getClientOriginalExtension() ?: 'tmp');
+                        file_put_contents($tmpPath, $file->get());
+                        $realPath = $tmpPath;
+                        $tmpCreated = true;
+                    } catch (\Throwable $e) {
+                        Log::error('Failed to create temp file for upload', ['message' => $e->getMessage()]);
+                        return back()->withErrors(['image' => 'Impossible de traiter le fichier image.'])->withInput();
+                    }
+                }
+
+                Log::info('Preparing Cloudinary upload', ['realPath' => $realPath, 'exists' => file_exists($realPath)]);
+
                 // Upload vers Cloudinary
                 $uploadedFile = Cloudinary::upload(
-                    $file->getRealPath(),
+                    $realPath,
                     ['folder' => 'projects']
                 );
 
@@ -62,14 +83,23 @@ class ProjectController extends Controller
                     $data['image'] = $uploadedFile->getSecureUrl();
                 } else {
                     Log::error('Cloudinary upload returned unexpected result', ['result' => $uploadedFile]);
+                    if (isset($tmpCreated) && $tmpCreated && isset($tmpPath) && file_exists($tmpPath)) {
+                        @unlink($tmpPath);
+                    }
                     return back()->withErrors(['image' => 'Erreur lors de l’upload de l’image (réponse inattendue).'])->withInput();
                 }
 
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 Log::error('Cloudinary upload failed', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                if (isset($tmpCreated) && $tmpCreated && isset($tmpPath) && file_exists($tmpPath)) {
+                    @unlink($tmpPath);
+                }
                 return back()->withErrors([
                     'image' => 'Erreur lors de l’upload de l’image : ' . $e->getMessage()
                 ])->withInput();
+            }
+            if (isset($tmpCreated) && $tmpCreated && isset($tmpPath) && file_exists($tmpPath)) {
+                @unlink($tmpPath);
             }
         }
 
