@@ -18,7 +18,6 @@ return new class extends Migration
         $table->string('type'); // site, app, graphisme
         $table->string('image')->nullable(); // capture du projet
         $table->string('source_link')->nullable(); // lien GitHub ou autre
-        $table->boolean('is_published')->default(true); // ✅ nouvelle colonne
         $table->timestamps();
     });
 }

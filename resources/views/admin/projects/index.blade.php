@@ -22,7 +22,7 @@
                 <td>{{ ucfirst($project->type) }}</td>
                 <td>
                     @if($project->image)
-                        <img src="{{ asset('storage/'.$project->image) }}" width="80">
+                        <img src="{{ asset('$project->image) }}" width="80">
                     @endif
                 </td>
                 <td>
