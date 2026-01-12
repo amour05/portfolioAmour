@@ -10,7 +10,10 @@
                 <div class="card h-100 shadow-sm border-0">
                     {{-- Image du projet --}}
                     @if($project->image)
-                        <img src="{{ asset('storage/' . $project->image) }}" class="card-img-top" alt="{{ $project->title }}">
+                        @php
+                            $src = \Illuminate\Support\Str::startsWith($project->image, ['http://','https://']) ? $project->image : asset('storage/' . $project->image);
+                        @endphp
+                        <img src="{{ $src }}" class="card-img-top" alt="{{ $project->title }}">
                     @else
                         <img src="/images/projets/default.png" class="card-img-top" alt="{{ $project->title }}">
                     @endif

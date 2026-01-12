@@ -22,7 +22,10 @@
                 <td>{{ ucfirst($project->type) }}</td>
                 <td>
                     @if($project->image)
-                        <img src="{{ $project->image }}" width="80">
+                        @php
+                            $src = \Illuminate\Support\Str::startsWith($project->image, ['http://','https://']) ? $project->image : asset('storage/' . $project->image);
+                        @endphp
+                        <img src="{{ $src }}" width="80">
                     @endif
                 </td>
                 <td>

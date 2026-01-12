@@ -34,8 +34,11 @@
         <div class="mb-3">
             <label for="image" class="form-label">Image du projet</label>
             @if($project->image)
+                @php
+                    $currentSrc = \Illuminate\Support\Str::startsWith($project->image, ['http://','https://']) ? $project->image : asset('storage/'.$project->image);
+                @endphp
                 <div class="mb-2">
-                    <img src="{{ asset('storage/'.$project->image) }}" width="120" alt="Image actuelle">
+                    <img src="{{ $currentSrc }}" width="120" alt="Image actuelle">
                 </div>
             @endif
             <input type="file" class="form-control" id="image" name="image">

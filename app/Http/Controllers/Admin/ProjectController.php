@@ -109,7 +109,7 @@ class ProjectController extends Controller
         // Si Cloudinary n'est pas configuré, sauvegarde localement dans storage/app/public/projects
         if (! env('CLOUDINARY_URL')) {
             $path = $file->store('projects', 'public');
-            return Storage::url($path);
+            return $path; // stocke le chemin relatif (projects/xxx.jpg)
         }
 
         // Utilise uploadFile (compatible avec l'ancienne API) mais gère les différents retours.
