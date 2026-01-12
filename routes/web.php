@@ -44,8 +44,14 @@ Route::get('/cv', function () {
 })->name('cv');
 
 
-Route::get('/test-cloudinary', function () {
-    return CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary::upload(
-        'https://res.cloudinary.com/demo/image/upload/sample.jpg'
-    )->getSecurePath();
+Route::get('/_debug/cloudinary', fn() => env('CLOUDINARY_URL'));
+
+Route::get('/_debug/cloudinary', function () {
+    return [
+        'CLOUDINARY_URL' => env('CLOUDINARY_URL'),
+        'CLOUDINARY_API_KEY' => env('CLOUDINARY_API_KEY'),
+        'CLOUDINARY_API_SECRET' => env('CLOUDINARY_API_SECRET'),
+        'CLOUDINARY_CLOUD_NAME' => env('CLOUDINARY_CLOUD_NAME'),
+    ];
 });
+
