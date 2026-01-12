@@ -44,3 +44,8 @@ Route::get('/cv', function () {
 })->name('cv');
 
 
+Route::get('/test-cloudinary', function () {
+    return CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary::upload(
+        'https://res.cloudinary.com/demo/image/upload/sample.jpg'
+    )->getSecurePath();
+});
