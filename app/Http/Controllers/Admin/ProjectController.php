@@ -78,7 +78,7 @@ class ProjectController extends Controller
             'description' => 'nullable|string',
             'type' => 'required|string',
             'image' => 'nullable|image|max:2048',
-            'source_link' => 'nullable|url',
+            'source_link' => 'nullable|string',
         ]);
 
         if ($request->hasFile('image')) {
