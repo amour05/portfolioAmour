@@ -4,7 +4,6 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SiteController;
 use Illuminate\Support\Facades\Route;
 
-
 Route::get('/', function () {
     return view('home');
 });
@@ -39,19 +38,18 @@ Route::get('/contact', [SiteController::class, 'contact'])->name('contact');
 Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('projects', \App\Http\Controllers\Admin\ProjectController::class)->except(['show']);
 });
+
 Route::get('/cv', function () {
     return response()->file(public_path('cv_amour.pdf'));
 })->name('cv');
 
-
-Route::get('/_debug/cloudinary', fn() => env('CLOUDINARY_URL'));
-
+// ✅ Route de debug unique
 Route::get('/_debug/cloudinary', function () {
-    return [
-        'CLOUDINARY_URL' => env('CLOUDINARY_URL'),
-        'CLOUDINARY_API_KEY' => env('CLOUDINARY_API_KEY'),
+    return response()->json([
+        'CLOUDINARY_URL'        => env('CLOUDINARY_URL'),
+        'CLOUDINARY_API_KEY'    => env('CLOUDINARY_API_KEY'),
         'CLOUDINARY_API_SECRET' => env('CLOUDINARY_API_SECRET'),
         'CLOUDINARY_CLOUD_NAME' => env('CLOUDINARY_CLOUD_NAME'),
-    ];
+        'APP_ENV'               => env('APP_ENV'),
+    ]);
 });
-
