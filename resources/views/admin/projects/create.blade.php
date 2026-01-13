@@ -3,6 +3,8 @@
 @section('content')
 <div class="container py-4">
     <h2 class="mb-4">➕ Ajouter un projet</h2>
+
+    {{-- Affichage des erreurs --}}
     @if ($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
@@ -41,7 +43,11 @@
         <!-- Image -->
         <div class="mb-3">
             <label for="image" class="form-label">Image du projet</label>
-            <input type="file" class="form-control" id="image" name="image">
+            <input type="file" class="form-control" id="image" name="image" accept="image/*" onchange="previewImage(event)">
+            <small class="text-muted">Formats acceptés : JPG, PNG, GIF (max 2 Mo)</small>
+            <div class="mt-2">
+                <img id="preview" src="#" alt="Prévisualisation" style="display:none; max-width:150px; border:1px solid #ddd; padding:4px;">
+            </div>
         </div>
 
         <!-- Lien code source -->
@@ -54,4 +60,20 @@
         <a href="{{ route('admin.projects.index') }}" class="btn btn-secondary">Annuler</a>
     </form>
 </div>
+
+{{-- Script JS pour prévisualiser l’image --}}
+<script>
+function previewImage(event) {
+    const input = event.target;
+    const preview = document.getElementById('preview');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
 @endsection

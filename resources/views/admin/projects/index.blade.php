@@ -16,32 +16,43 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($projects as $project)
+            @forelse($projects as $project)
             <tr>
                 <td>{{ $project->title }}</td>
                 <td>{{ ucfirst($project->type) }}</td>
                 <td>
                     @if($project->image)
+                        {{-- Vérifie si c’est une URL externe ou un chemin local --}}
                         @php
-                            $src = \Illuminate\Support\Str::startsWith($project->image, ['http://','https://']) ? $project->image : asset('storage/' . $project->image);
+                            $src = Str::startsWith($project->image, ['http://','https://'])
+                                ? $project->image
+                                : asset('storage/' . $project->image);
                         @endphp
-                        <img src="{{ $src }}" width="80">
+                        <img src="{{ $src }}" width="80" class="img-thumbnail">
+                    @else
+                        <span class="text-muted">Aucune image</span>
                     @endif
                 </td>
                 <td>
                     @if($project->source_link)
                         <a href="{{ $project->source_link }}" target="_blank">Voir code</a>
+                    @else
+                        <span class="text-muted">Non fourni</span>
                     @endif
                 </td>
                 <td>
                     <a href="{{ route('admin.projects.edit',$project->id) }}" class="btn btn-sm btn-warning">Modifier</a>
                     <form action="{{ route('admin.projects.destroy',$project->id) }}" method="POST" class="d-inline">
                         @csrf @method('DELETE')
-                        <button class="btn btn-sm btn-danger">Supprimer</button>
+                        <button class="btn btn-sm btn-danger" onclick="return confirm('Supprimer ce projet ?')">Supprimer</button>
                     </form>
                 </td>
             </tr>
-            @endforeach
+            @empty
+            <tr>
+                <td colspan="5" class="text-center text-muted">Aucun projet enregistré</td>
+            </tr>
+            @endforelse
         </tbody>
     </table>
 </div>

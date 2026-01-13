@@ -4,6 +4,17 @@
 <div class="container py-4">
     <h2 class="mb-4">✏️ Modifier le projet</h2>
 
+    {{-- Affichage des erreurs --}}
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form action="{{ route('admin.projects.update', $project->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
@@ -11,13 +22,16 @@
         <!-- Titre -->
         <div class="mb-3">
             <label for="title" class="form-label">Titre du projet</label>
-            <input type="text" class="form-control" id="title" name="title" value="{{ old('title', $project->title) }}" required>
+            <input type="text" class="form-control" id="title" name="title" 
+                   value="{{ old('title', $project->title) }}" required>
         </div>
 
         <!-- Description -->
         <div class="mb-3">
             <label for="description" class="form-label">Description</label>
-            <textarea class="form-control" id="description" name="description" rows="4">{{ old('description', $project->description) }}</textarea>
+            <textarea class="form-control" id="description" name="description" rows="4">
+                {{ old('description', $project->description) }}
+            </textarea>
         </div>
 
         <!-- Type -->
@@ -35,24 +49,51 @@
             <label for="image" class="form-label">Image du projet</label>
             @if($project->image)
                 @php
-                    $currentSrc = \Illuminate\Support\Str::startsWith($project->image, ['http://','https://']) ? $project->image : asset('storage/'.$project->image);
+                    $currentSrc = Str::startsWith($project->image, ['http://','https://']) 
+                        ? $project->image 
+                        : asset('storage/'.$project->image);
                 @endphp
                 <div class="mb-2">
-                    <img src="{{ $currentSrc }}" width="120" alt="Image actuelle">
+                    <img src="{{ $currentSrc }}" width="120" alt="Image actuelle" class="img-thumbnail">
                 </div>
+            @else
+                <p class="text-muted">Aucune image enregistrée pour ce projet.</p>
             @endif
-            <input type="file" class="form-control" id="image" name="image">
+
+            <input type="file" class="form-control" id="image" name="image" accept="image/*" onchange="previewImage(event)">
             <small class="text-muted">Laisser vide si tu ne veux pas changer l'image.</small>
+
+            <div class="mt-2">
+                <img id="preview" src="#" alt="Nouvelle image" style="display:none; max-width:150px; border:1px solid #ddd; padding:4px;">
+            </div>
         </div>
 
         <!-- Lien code source -->
         <div class="mb-3">
             <label for="source_link" class="form-label">Lien vers le code source</label>
-            <input type="url" class="form-control" id="source_link" name="source_link" value="{{ old('source_link', $project->source_link) }}" placeholder="https://github.com/...">
+            <input type="url" class="form-control" id="source_link" name="source_link" 
+                   value="{{ old('source_link', $project->source_link) }}" 
+                   placeholder="https://github.com/...">
         </div>
 
         <button type="submit" class="btn btn-success">Mettre à jour</button>
         <a href="{{ route('admin.projects.index') }}" class="btn btn-secondary">Annuler</a>
     </form>
 </div>
+
+{{-- Script JS pour prévisualiser la nouvelle image --}}
+<script>
+function previewImage(event) {
+    const input = event.target;
+    const preview = document.getElementById('preview');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
 @endsection
