@@ -11,18 +11,11 @@ class Kernel extends HttpKernel
      *
      * @var array<string, class-string>
      */
-    protected $middlewareAliases = [
-        'is_admin' => \App\Http\Middleware\IsAdmin::class,
-        'auto_login_admin' => \App\Http\Middleware\AutoLoginAdmin::class,
-    ];
-
+    
     /**
      * Legacy route middleware mapping for older Laravel versions.
      *
      * @var array<string, class-string>
      */
-    protected $routeMiddleware = [
-        'is_admin' => \App\Http\Middleware\IsAdmin::class,
-        'auto_login_admin' => \App\Http\Middleware\AutoLoginAdmin::class,
-    ];
+    
 }
