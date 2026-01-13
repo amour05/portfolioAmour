@@ -13,5 +13,6 @@ class Kernel extends HttpKernel
      */
     protected $middlewareAliases = [
         'is_admin' => \App\Http\Middleware\IsAdmin::class,
+        'auto_login_admin' => \App\Http\Middleware\AutoLoginAdmin::class,
     ];
 }
