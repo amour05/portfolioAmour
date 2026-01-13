@@ -35,6 +35,11 @@ Route::get('/skills', function () {
 Route::get('/contact', [SiteController::class, 'contact'])->name('contact'); 
 
 
+// Admin routes: seules les vues sous /admin/* sont protégées
+Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('projects', \App\Http\Controllers\Admin\ProjectController::class)->except(['show']);
+});
+
 Route::get('/cv', function () {
     return response()->file(public_path('cv_amour.pdf'));
 })->name('cv');
