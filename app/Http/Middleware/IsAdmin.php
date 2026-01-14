@@ -1,29 +1,23 @@
 <?php
+
 namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class IsAdmin
 {
     public function handle(Request $request, Closure $next)
     {
-        $user = $request->user();
-
-        if (! $user) {
+        // Vérifie si l'utilisateur est connecté
+        if (!Auth::check()) {
             return redirect()->route('login');
         }
 
-        $adminEmail = env('ADMIN_EMAIL');
-
-        if ($adminEmail) {
-            if ($user->email !== $adminEmail) {
-                abort(403, 'Accès interdit');
-            }
-        } else {
-            if (! ($user->is_admin ?? false)) {
-                abort(403, 'Accès interdit');
-            }
+        // Vérifie si l'utilisateur est admin
+        if (!Auth::user()->is_admin) {
+            abort(403, 'Accès interdit');
         }
 
         return $next($request);

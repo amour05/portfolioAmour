@@ -21,7 +21,7 @@ class AutoLoginAdmin
             return $next($request);
         }
 
-        $email = env('AUTO_LOGIN_EMAIL', 'amoursedjro47@gmail.com');
+        $email = env('AUTO_LOGIN_EMAIL', 'admin@example.com');
         $user = \App\Models\User::where('email', $email)->first();
 
         if ($user) {
