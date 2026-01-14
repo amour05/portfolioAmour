@@ -10,7 +10,11 @@
             <tr>
                 <th>Titre</th>
                 <th>Type</th>
-                <th>Image</th>
+                <th>Langages</th>
+                <th>Framework</th>
+                <th>Outils</th>
+                <th>Environnement</th>
+                <th>Base de données</th>
                 <th>Source</th>
                 <th>Actions</th>
             </tr>
@@ -20,19 +24,11 @@
             <tr>
                 <td>{{ $project->title }}</td>
                 <td>{{ ucfirst($project->type) }}</td>
-                <td>
-                    @if($project->image)
-                        {{-- Vérifie si c’est une URL externe ou un chemin local --}}
-                        @php
-                            $src = Str::startsWith($project->image, ['http://','https://'])
-                                ? $project->image
-                                : asset('storage/' . $project->image);
-                        @endphp
-                        <img src="{{ $src }}" width="80" class="img-thumbnail">
-                    @else
-                        <span class="text-muted">Aucune image</span>
-                    @endif
-                </td>
+                <td>{{ $project->langages ?? '—' }}</td>
+                <td>{{ $project->framework ?? '—' }}</td>
+                <td>{{ $project->outils ?? '—' }}</td>
+                <td>{{ $project->environnement ?? '—' }}</td>
+                <td>{{ $project->database ?? '—' }}</td>
                 <td>
                     @if($project->source_link)
                         <a href="{{ $project->source_link }}" target="_blank">Voir code</a>
@@ -50,7 +46,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="5" class="text-center text-muted">Aucun projet enregistré</td>
+                <td colspan="9" class="text-center text-muted">Aucun projet enregistré</td>
             </tr>
             @endforelse
         </tbody>

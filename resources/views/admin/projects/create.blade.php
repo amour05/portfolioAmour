@@ -15,7 +15,7 @@
         </div>
     @endif
 
-    <form action="{{ route('admin.projects.store') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('admin.projects.store') }}" method="POST">
         @csrf
 
         <!-- Titre -->
@@ -40,14 +40,34 @@
             </select>
         </div>
 
-        <!-- Image -->
+        <!-- Langages -->
         <div class="mb-3">
-            <label for="image" class="form-label">Image du projet</label>
-            <input type="file" class="form-control" id="image" name="image" accept="image/*" onchange="previewImage(event)">
-            <small class="text-muted">Formats acceptés : JPG, PNG, GIF (max 2 Mo)</small>
-            <div class="mt-2">
-                <img id="preview" src="#" alt="Prévisualisation" style="display:none; max-width:150px; border:1px solid #ddd; padding:4px;">
-            </div>
+            <label for="langages" class="form-label">Langages utilisés</label>
+            <input type="text" class="form-control" id="langages" name="langages" value="{{ old('langages') }}" placeholder="Ex: PHP, JavaScript, Dart">
+        </div>
+
+        <!-- Framework -->
+        <div class="mb-3">
+            <label for="framework" class="form-label">Framework</label>
+            <input type="text" class="form-control" id="framework" name="framework" value="{{ old('framework') }}" placeholder="Ex: Laravel, Flutter">
+        </div>
+
+        <!-- Outils -->
+        <div class="mb-3">
+            <label for="outils" class="form-label">Outils</label>
+            <input type="text" class="form-control" id="outils" name="outils" value="{{ old('outils') }}" placeholder="Ex: Docker, GitHub, VSCode">
+        </div>
+
+        <!-- Environnement -->
+        <div class="mb-3">
+            <label for="environnement" class="form-label">Environnement</label>
+            <input type="text" class="form-control" id="environnement" name="environnement" value="{{ old('environnement') }}" placeholder="Ex: Windows, Linux, Render">
+        </div>
+
+        <!-- Base de données -->
+        <div class="mb-3">
+            <label for="database" class="form-label">Base de données</label>
+            <input type="text" class="form-control" id="database" name="database" value="{{ old('database') }}" placeholder="Ex: MySQL, PostgreSQL, Firebase">
         </div>
 
         <!-- Lien code source -->
@@ -60,20 +80,4 @@
         <a href="{{ route('admin.projects.index') }}" class="btn btn-secondary">Annuler</a>
     </form>
 </div>
-
-{{-- Script JS pour prévisualiser l’image --}}
-<script>
-function previewImage(event) {
-    const input = event.target;
-    const preview = document.getElementById('preview');
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-</script>
 @endsection

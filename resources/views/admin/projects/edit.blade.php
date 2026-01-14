@@ -15,7 +15,7 @@
         </div>
     @endif
 
-    <form action="{{ route('admin.projects.update', $project->id) }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('admin.projects.update', $project->id) }}" method="POST">
         @csrf
         @method('PUT')
 
@@ -29,9 +29,7 @@
         <!-- Description -->
         <div class="mb-3">
             <label for="description" class="form-label">Description</label>
-            <textarea class="form-control" id="description" name="description" rows="4">
-                {{ old('description', $project->description) }}
-            </textarea>
+            <textarea class="form-control" id="description" name="description" rows="4">{{ old('description', $project->description) }}</textarea>
         </div>
 
         <!-- Type -->
@@ -44,28 +42,39 @@
             </select>
         </div>
 
-        <!-- Image -->
+        <!-- Langages -->
         <div class="mb-3">
-            <label for="image" class="form-label">Image du projet</label>
-            @if($project->image)
-                @php
-                    $currentSrc = Str::startsWith($project->image, ['http://','https://']) 
-                        ? $project->image 
-                        : asset('storage/'.$project->image);
-                @endphp
-                <div class="mb-2">
-                    <img src="{{ $currentSrc }}" width="120" alt="Image actuelle" class="img-thumbnail">
-                </div>
-            @else
-                <p class="text-muted">Aucune image enregistrée pour ce projet.</p>
-            @endif
+            <label for="langages" class="form-label">Langages utilisés</label>
+            <input type="text" class="form-control" id="langages" name="langages" 
+                   value="{{ old('langages', $project->langages) }}" placeholder="Ex: PHP, JavaScript, Dart">
+        </div>
 
-            <input type="file" class="form-control" id="image" name="image" accept="image/*" onchange="previewImage(event)">
-            <small class="text-muted">Laisser vide si tu ne veux pas changer l'image.</small>
+        <!-- Framework -->
+        <div class="mb-3">
+            <label for="framework" class="form-label">Framework</label>
+            <input type="text" class="form-control" id="framework" name="framework" 
+                   value="{{ old('framework', $project->framework) }}" placeholder="Ex: Laravel, Flutter">
+        </div>
 
-            <div class="mt-2">
-                <img id="preview" src="#" alt="Nouvelle image" style="display:none; max-width:150px; border:1px solid #ddd; padding:4px;">
-            </div>
+        <!-- Outils -->
+        <div class="mb-3">
+            <label for="outils" class="form-label">Outils</label>
+            <input type="text" class="form-control" id="outils" name="outils" 
+                   value="{{ old('outils', $project->outils) }}" placeholder="Ex: Docker, GitHub, VSCode">
+        </div>
+
+        <!-- Environnement -->
+        <div class="mb-3">
+            <label for="environnement" class="form-label">Environnement</label>
+            <input type="text" class="form-control" id="environnement" name="environnement" 
+                   value="{{ old('environnement', $project->environnement) }}" placeholder="Ex: Windows, Linux, Render">
+        </div>
+
+        <!-- Base de données -->
+        <div class="mb-3">
+            <label for="database" class="form-label">Base de données</label>
+            <input type="text" class="form-control" id="database" name="database" 
+                   value="{{ old('database', $project->database) }}" placeholder="Ex: MySQL, PostgreSQL, Firebase">
         </div>
 
         <!-- Lien code source -->
@@ -80,20 +89,4 @@
         <a href="{{ route('admin.projects.index') }}" class="btn btn-secondary">Annuler</a>
     </form>
 </div>
-
-{{-- Script JS pour prévisualiser la nouvelle image --}}
-<script>
-function previewImage(event) {
-    const input = event.target;
-    const preview = document.getElementById('preview');
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-</script>
 @endsection

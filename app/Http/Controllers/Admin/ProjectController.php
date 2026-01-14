@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class ProjectController extends Controller
 {
@@ -23,15 +22,13 @@ class ProjectController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'required|string',
-            'image' => 'nullable|image|max:2048',
+            'langages' => 'nullable|string',
+            'framework' => 'nullable|string',
+            'outils' => 'nullable|string',
+            'environnement' => 'nullable|string',
+            'database' => 'nullable|string',
             'source_link' => 'nullable|url',
         ]);
-
-        if ($request->hasFile('image')) {
-            // Stocker l'image dans storage/app/public/projects
-            $path = $request->file('image')->store('projects', 'public');
-            $data['image'] = $path; // Exemple : projects/nomfichier.jpg
-        }
 
         Project::create($data);
         return redirect()->route('admin.projects.index')->with('success','Projet ajouté avec succès');
@@ -49,20 +46,13 @@ class ProjectController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'required|string',
-            'image' => 'nullable|image|max:2048',
+            'langages' => 'nullable|string',
+            'framework' => 'nullable|string',
+            'outils' => 'nullable|string',
+            'environnement' => 'nullable|string',
+            'database' => 'nullable|string',
             'source_link' => 'nullable|url',
         ]);
-
-        if ($request->hasFile('image')) {
-            // Supprimer l’ancienne image si elle existe
-            if ($project->image && Storage::disk('public')->exists($project->image)) {
-                Storage::disk('public')->delete($project->image);
-            }
-
-            // Stocker la nouvelle image
-            $path = $request->file('image')->store('projects', 'public');
-            $data['image'] = $path;
-        }
 
         $project->update($data);
         return redirect()->route('admin.projects.index')->with('success','Projet mis à jour');
@@ -70,12 +60,6 @@ class ProjectController extends Controller
 
     public function destroy($id) {
         $project = Project::findOrFail($id);
-
-        // Supprimer l’image associée si elle existe
-        if ($project->image && Storage::disk('public')->exists($project->image)) {
-            Storage::disk('public')->delete($project->image);
-        }
-
         $project->delete();
         return redirect()->route('admin.projects.index')->with('success','Projet supprimé');
     }
