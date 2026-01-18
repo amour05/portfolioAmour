@@ -19,11 +19,11 @@
                 <div class="navbar-collapse" id="navMain">
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item"><a class="nav-link" href="{{ url('/about') }}">À propos</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ route('blog.index') }}">Blog</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ route('skills') }}"><i class="bi bi-tools me-1" aria-hidden="true"></i>Compétences</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ route('cv') }}">CV PDF</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ route('projects') }}">Projets</a></li>
 
-                       
                         
                         @auth
                             @if(auth()->user()->is_admin ?? false)
@@ -59,6 +59,7 @@
                     <h6 class="text-white">Liens</h6>
                     <ul class="list-unstyled">
                         <li><a href="{{ route('about') }}" class="text-white">À propos</a></li>
+                        <li><a href="{{ route('blog.index') }}" class="text-white">Blog</a></li>
                         <li><a href="{{ route('skills') }}" class="text-white">Compétences</a></li>
                         <li><a href="{{ route('cv') }}" class="text-white">CV PDF</a></li>
                         <li><a href="{{ route('projects') }}" class="text-white">Projets</a></li>
