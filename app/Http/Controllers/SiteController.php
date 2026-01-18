@@ -3,7 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project; // <-- ajoute l'import
 use Illuminate\Http\Request;
-
+use App\Models\Post;
 class SiteController extends Controller
 {
     public function home() {
@@ -30,5 +30,17 @@ class SiteController extends Controller
 
     public function contact() {
         return view('contact');
+    }
+
+    public function blog()
+    {
+        $posts = Post::where('published', true)->latest()->paginate(6);
+        return view('blog.index', compact('posts'));
+    }
+
+    public function showPost($slug)
+    {
+        $post = Post::where('slug', $slug)->where('published', true)->firstOrFail();
+        return view('blog.show', compact('post'));
     }
 }

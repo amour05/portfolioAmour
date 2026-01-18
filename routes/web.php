@@ -61,3 +61,7 @@ Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])
     ->group(function () {
         Route::resource('posts', \App\Http\Controllers\Admin\PostController::class);
     });
+
+// Blog public
+Route::get('/blog', [SiteController::class, 'blog'])->name('blog.index');
+Route::get('/blog/{slug}', [SiteController::class, 'showPost'])->name('blog.show');
