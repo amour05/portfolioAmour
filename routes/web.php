@@ -54,3 +54,10 @@ Route::get('/_debug/cloudinary', function () {
         'APP_ENV'               => env('APP_ENV'),
     ]);
 });
+
+Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::resource('posts', \App\Http\Controllers\Admin\PostController::class);
+    });
