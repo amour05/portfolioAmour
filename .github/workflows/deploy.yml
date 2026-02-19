@@ -136,9 +136,12 @@ jobs:
             exit 1
           fi
 
-      # 15. Create GitHub Pages configuration
+      # 14. Create GitHub Pages configuration
       - name: Configure GitHub Pages
         run: |
+          # Create .nojekyll to disable Jekyll processing (CRITICAL for static sites)
+          touch dist/.nojekyll
+          
           # Create CNAME file if you have a custom domain
           # echo "your-domain.com" > dist/CNAME
           
@@ -150,8 +153,16 @@ jobs:
           storage/
           .env
           EOF
+          
+          # Verify .nojekyll was created
+          if [ -f dist/.nojekyll ]; then
+            echo "✅ .nojekyll created successfully"
+          else
+            echo "❌ ERROR: .nojekyll not created!"
+            exit 1
+          fi
 
-      # 16. Deploy to GitHub Pages using gh-pages branch (avoids deprecated artifact action)
+      # 15. Deploy to GitHub Pages using gh-pages branch (avoids deprecated artifact action)
       - name: Deploy to GitHub Pages (gh-pages)
         uses: peaceiris/actions-gh-pages@v3
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
@@ -159,7 +170,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
 
-      # 17. Display deployment info
+      # 16. Display deployment info
       - name: Deployment Summary
         if: always()
         run: |

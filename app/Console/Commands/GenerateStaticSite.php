@@ -56,14 +56,18 @@ class GenerateStaticSite extends Command
         // Copier les assets publics
         $this->copyPublicAssets($outputDir);
 
-        // Créer .nojekyll pour GitHub Pages
+        // Créer .nojekyll pour désactiver Jekyll sur GitHub Pages
         File::put("{$outputDir}/.nojekyll", '');
+        $this->info("✅ Created: .nojekyll (disables Jekyll)");
 
-        // Créer un fichier config pour GitHub Pages
-        File::put("{$outputDir}/_config.yml", "# GitHub Pages Jekyll config\n");
+        // Créer un fichier robots.txt
+        $robotsTxt = "User-agent: *\nAllow: /\n";
+        File::put("{$outputDir}/robots.txt", $robotsTxt);
+        $this->info("✅ Created: robots.txt");
 
         $this->info('✅ Static site generated successfully!');
         $this->info("📁 Output directory: {$outputDir}/");
+        $this->info("\n📝 Tip: Make sure .nojekyll is pushed to gh-pages branch!");
     }
 
     private function generateRoute($client, $route, $outputDir)
