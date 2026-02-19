@@ -1,0 +1,187 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: ['8.2']
+        node-version: ['20']
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Setup PHP
+      - name: Setup PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, pdo, pdo_sqlite, bcmath
+          tools: composer:latest
+
+      # 3. Get Composer cache directory
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      # 4. Cache Composer dependencies
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      # 5. Install PHP dependencies
+      - name: Install PHP dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader
+          composer dump-autoload
+
+      # 6. Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      # 7. Install NPM dependencies
+      - name: Install NPM dependencies
+        run: npm ci
+
+      # 8. Create .env file for Laravel
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+          php artisan key:generate --no-interaction
+
+      # 9. Build Vite assets
+      - name: Build Vite assets
+        run: npm run build
+
+      # 10. Setup SQLite database for static generation
+      - name: Setup SQLite database
+        run: |
+          touch database/portfolio.sqlite
+          php artisan migrate --database=sqlite --force --no-interaction
+
+      # 11. Seed database with test data (optional)
+      - name: Seed database
+        run: php artisan db:seed --force --no-interaction
+        continue-on-error: true
+
+      # 12. Start Laravel development server in background
+      - name: Start Laravel server
+        run: |
+          php artisan serve --host=localhost --port=8000 > /tmp/laravel.log 2>&1 &
+          SERVER_PID=$!
+          echo "Server PID: $SERVER_PID"
+          
+          # Wait for server to start with health check (max 30 seconds)
+          echo "Waiting for server to be ready..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/ > /dev/null 2>&1; then
+              echo "✅ Server is ready!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ Server failed to start"
+              cat /tmp/laravel.log
+              exit 1
+            fi
+            echo "Attempt $i/30 - waiting 1 second..."
+            sleep 1
+          done
+
+      # 13. Generate static site
+      - name: Generate static site
+        run: npm run build:static
+        env:
+          APP_ENV: production
+          APP_DEBUG: false
+
+      # 14. Verify dist/index.html exists
+      - name: Verify static site build
+        run: |
+          echo "📁 Contents of dist/ directory:"
+          if [ -d dist ]; then
+            ls -la dist/ | head -30
+            if [ -f dist/index.html ]; then
+              echo "✅ dist/index.html found"
+              echo "📄 First 500 characters of dist/index.html:"
+              head -c 500 dist/index.html
+            else
+              echo "❌ ERROR: dist/index.html not found!"
+              exit 1
+            fi
+          else
+            echo "❌ ERROR: dist/ directory not found!"
+            exit 1
+          fi
+
+      # 14. Create GitHub Pages configuration
+      - name: Configure GitHub Pages
+        run: |
+          # Create .nojekyll to disable Jekyll processing (CRITICAL for static sites)
+          touch dist/.nojekyll
+          
+          # Create CNAME file if you have a custom domain
+          # echo "your-domain.com" > dist/CNAME
+          
+          # Create .gitignore for dist/
+          cat > dist/.gitignore << EOF
+          .DS_Store
+          *.log
+          node_modules/
+          storage/
+          .env
+          EOF
+          
+          # Verify .nojekyll was created
+          if [ -f dist/.nojekyll ]; then
+            echo "✅ .nojekyll created successfully"
+          else
+            echo "❌ ERROR: .nojekyll not created!"
+            exit 1
+          fi
+
+      # 15. Deploy to GitHub Pages using gh-pages branch (avoids deprecated artifact action)
+      - name: Deploy to GitHub Pages (gh-pages)
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+
+      # 16. Display deployment info
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "=================================="
+          echo "✅ GitHub Pages deployment summary:"
+          echo "=================================="
+          echo "📌 Repository: ${{ github.repository }}"
+          echo "🌐 Pages URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          echo "📁 Source: gh-pages branch (publish_dir: dist/)"
+          echo ""
+          if [ -d dist ]; then
+            echo "📋 Final dist/ contents:"
+            ls -la dist/ | head -20
+          fi

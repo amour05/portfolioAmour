@@ -1,0 +1,13 @@
+# GitHub Pages configuration for Portfolio
+# Deploy: gh-pages
+# Branch: gh-pages
+domain: github.io
+title: Portfolio
+lang: en
+url: 
+baseurl: 
+
+# Jekyll settings
+markdown: kramdown
+highlighter: rouge
+future: true
