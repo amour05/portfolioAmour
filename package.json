@@ -6,7 +6,10 @@
         "build": "vite build",
         "dev": "vite",
         "build:static": "node scripts/static-generate.js dist",
-        "build:gh-pages": "npm run build && npm run build:static"
+        "build:gh-pages": "npm run build && npm run build:static",
+        "deploy:local": "npm run build && php artisan static:generate --output=dist",
+        "deploy:test": "npm run deploy:local && npx http-server dist",
+        "serve:dist": "npx http-server dist"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",

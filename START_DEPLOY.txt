@@ -1,0 +1,43 @@
+🚀 DÉMARRAGE IMMÉDIAT
+════════════════════════════════════════════════════════════════════════════
+
+COPIER-COLLER CES COMMANDES:
+
+Linux/macOS:
+───────────
+composer install
+npm install
+npm run deploy:local
+npm run serve:dist
+
+Puis ouvrir: http://localhost:8080
+
+Ensuite:
+git add .
+git commit -m "🚀 Deploy to GitHub Pages"
+git push origin main
+
+Windows:
+────────
+composer install
+npm install
+npm run deploy:local
+npm run serve:dist
+
+Puis ouvrir: http://localhost:8080
+
+Ensuite:
+git add .
+git commit -m "🚀 Deploy to GitHub Pages"
+git push origin main
+
+════════════════════════════════════════════════════════════════════════════
+
+✅ C'EST TOUT!
+
+Le site sera disponible dans 1-2 minutes à:
+https://username.github.io/your-repo-name
+
+════════════════════════════════════════════════════════════════════════════
+
+Des problèmes? Consultez: DEPLOY_START_HERE.md

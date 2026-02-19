@@ -1,0 +1,23 @@
+# GitHub Pages Jekyll Configuration
+# This file tells GitHub to skip Jekyll processing and serve the static site as-is
+
+layout: null
+skip_jekyll: true
+
+# Include hidden files
+include:
+  - .nojekyll
+
+# Exclude development files
+exclude:
+  - vendor/
+  - node_modules/
+  - ".env"
+  - app/
+  - config/
+  - database/
+  - resources/
+  - routes/
+  - scripts/
+  - storage/
+  - tests/

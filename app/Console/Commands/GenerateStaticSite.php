@@ -4,15 +4,15 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Route;
-use Symfony\Component\DomCrawler\Crawler;
-use GuzzleHttp\Client;
+use Illuminate\Support\Facades\View;
+use App\Models\Post;
+use App\Models\Project;
 use Exception;
 
 class GenerateStaticSite extends Command
 {
     protected $signature = 'static:generate {--output=dist}';
-    protected $description = 'Generate static HTML files from public routes for GitHub Pages';
+    protected $description = 'Generate static HTML files from public routes for GitHub Pages (no HTTP requests)';
 
     public function handle()
     {
@@ -24,87 +24,90 @@ class GenerateStaticSite extends Command
         }
         File::makeDirectory($outputDir, 0755, true);
 
-        // Routes publiques à générer
-        $publicRoutes = [
-            '/',
-            '/projects',
-            '/about',
-            '/skills',
-            '/contact',
-            '/blog',
+        $this->info('🚀 Generating static site without HTTP requests...');
+
+        // 1. Generate static pages
+        $this->generateStaticPages($outputDir);
+
+        // 2. Generate blog posts if posts table exists
+        $this->generateBlogPosts($outputDir);
+
+        // 3. Copy public assets
+        $this->copyPublicAssets($outputDir);
+
+        // 4. Create .nojekyll
+        File::put("{$outputDir}/.nojekyll", '');
+        $this->info("✅ Created: .nojekyll (disables Jekyll)");
+
+        // 5. Create robots.txt
+        File::put("{$outputDir}/robots.txt", "User-agent: *\nAllow: /\n");
+        $this->info("✅ Created: robots.txt");
+
+        $this->info('✅ Static site generated successfully!');
+        $this->info("📁 Output directory: {$outputDir}/");
+    }
+
+    private function generateStaticPages($outputDir)
+    {
+        $pages = [
+            '/' => 'home',
+            '/about' => 'about',
+            '/skills' => 'skills',
+            '/projects' => 'projects',
+            '/contact' => 'contact',
+            '/blog' => 'blog.index',
         ];
 
-        $this->info('🚀 Generating static site...');
-        
-        $client = new Client([
-            'base_uri' => 'http://localhost:8000/',
-            'timeout'  => 30,
-        ]);
-
-        foreach ($publicRoutes as $route) {
+        foreach ($pages as $route => $view) {
             try {
-                $this->generateRoute($client, $route, $outputDir);
+                if ($route === '/projects') {
+                    $data = $this->getProjectsData();
+                    $html = View::make($view, $data)->render();
+                } elseif ($route === '/blog') {
+                    $data = $this->getBlogData();
+                    $html = View::make($view, $data)->render();
+                } else {
+                    $html = View::make($view)->render();
+                }
+
+                // Clean HTML URLs
+                $html = $this->cleanHtmlUrls($html);
+
+                // Save file
+                $this->saveHtmlFile($route, $html, $outputDir);
                 $this->info("✅ Generated: {$route}");
             } catch (Exception $e) {
                 $this->error("❌ Failed to generate {$route}: " . $e->getMessage());
             }
         }
-
-        // Générer les pages blog dynamiques
-        $this->generateBlogPosts($client, $outputDir);
-
-        // Copier les assets publics
-        $this->copyPublicAssets($outputDir);
-
-        // Créer .nojekyll pour désactiver Jekyll sur GitHub Pages
-        File::put("{$outputDir}/.nojekyll", '');
-        $this->info("✅ Created: .nojekyll (disables Jekyll)");
-
-        // Créer un fichier robots.txt
-        $robotsTxt = "User-agent: *\nAllow: /\n";
-        File::put("{$outputDir}/robots.txt", $robotsTxt);
-        $this->info("✅ Created: robots.txt");
-
-        $this->info('✅ Static site generated successfully!');
-        $this->info("📁 Output directory: {$outputDir}/");
-        $this->info("\n📝 Tip: Make sure .nojekyll is pushed to gh-pages branch!");
     }
 
-    private function generateRoute($client, $route, $outputDir)
+    private function generateBlogPosts($outputDir)
     {
         try {
-            $response = $client->get(ltrim($route, '/'));
-            $html = (string) $response->getBody();
-        } catch (Exception $e) {
-            throw new Exception("Failed to fetch route: " . $e->getMessage());
-        }
+            // Check if posts table exists
+            if (!method_exists(Post::class, 'getTable') || !File::exists('database/migrations')) {
+                $this->warn("⚠️  Skipping blog posts (table might not exist)");
+                return;
+            }
 
-        // Déterminer le chemin du fichier
-        if ($route === '/') {
-            $filePath = "{$outputDir}/index.html";
-            $dir = $outputDir;
-        } else {
-            // Create proper directory structure: /about -> dist/about/
-            $dir = "{$outputDir}{$route}";
-            File::ensureDirectoryExists($dir);
-            $filePath = "{$dir}/index.html";
-        }
+            $posts = Post::where('is_published', true)->orWhere('published', true)->get();
 
-        File::put($filePath, $html);
-    }
-
-    private function generateBlogPosts($client, $outputDir)
-    {
-        // Récupérer tous les posts publiés depuis la base de données
-        try {
-            $posts = \App\Models\Post::where('is_published', true)->get();
+            if ($posts->isEmpty()) {
+                $this->info("ℹ️  No published blog posts found");
+                return;
+            }
 
             foreach ($posts as $post) {
                 try {
-                    $this->generateRoute($client, "/blog/{$post->slug}", $outputDir);
-                    $this->info("✅ Generated: /blog/{$post->slug}");
+                    $slug = $post->slug ?? str_slug($post->title);
+                    $html = View::make('blog.show', ['post' => $post])->render();
+                    $html = $this->cleanHtmlUrls($html);
+                    
+                    $this->saveHtmlFile("/blog/{$slug}", $html, $outputDir);
+                    $this->info("✅ Generated: /blog/{$slug}");
                 } catch (Exception $e) {
-                    $this->error("❌ Failed to generate blog post {$post->slug}");
+                    $this->warn("⚠️  Could not generate blog post: " . $e->getMessage());
                 }
             }
         } catch (Exception $e) {
@@ -114,22 +117,75 @@ class GenerateStaticSite extends Command
 
     private function copyPublicAssets($outputDir)
     {
-        // Copier les assets compilés build/
+        // Copy build assets
         if (File::exists('public/build')) {
             File::copyDirectory('public/build', "{$outputDir}/build");
-            $this->info("✅ Copied: /build assets");
+            $this->info("✅ Copied: /build");
         }
 
-        // Copier les images
+        // Copy images
         if (File::exists('public/images')) {
             File::copyDirectory('public/images', "{$outputDir}/images");
-            $this->info("✅ Copied: /images assets");
+            $this->info("✅ Copied: /images");
         }
 
-        // Copier d'autres fichiers statiques si nécessaire
-        if (File::exists('public/robots.txt')) {
-            File::copy('public/robots.txt', "{$outputDir}/robots.txt");
-            $this->info("✅ Copied: robots.txt");
+        // Copy other public files
+        foreach (['robots.txt', 'sitemap.xml', 'favicon.ico'] as $file) {
+            if (File::exists("public/{$file}")) {
+                File::copy("public/{$file}", "{$outputDir}/{$file}");
+                $this->info("✅ Copied: {$file}");
+            }
+        }
+    }
+
+    private function cleanHtmlUrls(&$html)
+    {
+        // Replace dynamic URLs with static ones
+        $html = preg_replace('|href="[^"]*route\(["\']([^"\']+)["\'][^"]*"|', 'href="/$1"', $html);
+        $html = preg_replace('|href="[^"]*url\(["\']([^"\']+)["\'][^"]*"|', 'href="/$1"', $html);
+        
+        // Fix relative paths in navigation
+        $html = str_replace('href="{{ url(\'/\')', 'href="/', $html);
+        $html = str_replace('href="{{ route(\'', 'href="/', $html);
+        
+        return $html;
+    }
+
+    private function saveHtmlFile($route, $html, $outputDir)
+    {
+        if ($route === '/') {
+            $filePath = "{$outputDir}/index.html";
+        } else {
+            $dir = "{$outputDir}{$route}";
+            File::ensureDirectoryExists($dir);
+            $filePath = "{$dir}/index.html";
+        }
+
+        File::put($filePath, $html);
+    }
+
+    private function getProjectsData()
+    {
+        try {
+            $projects = Project::where('is_published', true)
+                ->orderBy('created_at', 'desc')
+                ->paginate(9);
+            return compact('projects');
+        } catch (Exception $e) {
+            return ['projects' => []];
+        }
+    }
+
+    private function getBlogData()
+    {
+        try {
+            $posts = Post::where('is_published', true)
+                ->orWhere('published', true)
+                ->latest()
+                ->paginate(6);
+            return compact('posts');
+        } catch (Exception $e) {
+            return ['posts' => []];
         }
     }
 }
