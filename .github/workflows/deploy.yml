@@ -90,8 +90,25 @@ jobs:
       # 12. Start Laravel development server in background
       - name: Start Laravel server
         run: |
-          php artisan serve --host=localhost --port=8000 &
-          sleep 3
+          php artisan serve --host=localhost --port=8000 > /tmp/laravel.log 2>&1 &
+          SERVER_PID=$!
+          echo "Server PID: $SERVER_PID"
+          
+          # Wait for server to start with health check (max 30 seconds)
+          echo "Waiting for server to be ready..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/ > /dev/null 2>&1; then
+              echo "✅ Server is ready!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ Server failed to start"
+              cat /tmp/laravel.log
+              exit 1
+            fi
+            echo "Attempt $i/30 - waiting 1 second..."
+            sleep 1
+          done
 
       # 13. Generate static site
       - name: Generate static site
@@ -100,7 +117,26 @@ jobs:
           APP_ENV: production
           APP_DEBUG: false
 
-      # 14. Create GitHub Pages configuration
+      # 14. Verify dist/index.html exists
+      - name: Verify static site build
+        run: |
+          echo "📁 Contents of dist/ directory:"
+          if [ -d dist ]; then
+            ls -la dist/ | head -30
+            if [ -f dist/index.html ]; then
+              echo "✅ dist/index.html found"
+              echo "📄 First 500 characters of dist/index.html:"
+              head -c 500 dist/index.html
+            else
+              echo "❌ ERROR: dist/index.html not found!"
+              exit 1
+            fi
+          else
+            echo "❌ ERROR: dist/ directory not found!"
+            exit 1
+          fi
+
+      # 15. Create GitHub Pages configuration
       - name: Configure GitHub Pages
         run: |
           # Create CNAME file if you have a custom domain
@@ -115,7 +151,7 @@ jobs:
           .env
           EOF
 
-      # 15. Deploy to GitHub Pages using gh-pages branch (avoids deprecated artifact action)
+      # 16. Deploy to GitHub Pages using gh-pages branch (avoids deprecated artifact action)
       - name: Deploy to GitHub Pages (gh-pages)
         uses: peaceiris/actions-gh-pages@v3
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
@@ -123,12 +159,18 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
 
-      # 16. Display deployment info
+      # 17. Display deployment info
       - name: Deployment Summary
+        if: always()
         run: |
+          echo "=================================="
           echo "✅ GitHub Pages deployment summary:"
+          echo "=================================="
           echo "📌 Repository: ${{ github.repository }}"
           echo "🌐 Pages URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
           echo "📁 Source: gh-pages branch (publish_dir: dist/)"
           echo ""
-          ls -la dist/ | head -20
+          if [ -d dist ]; then
+            echo "📋 Final dist/ contents:"
+            ls -la dist/ | head -20
+          fi
