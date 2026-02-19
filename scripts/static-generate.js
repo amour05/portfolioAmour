@@ -5,9 +5,12 @@
  * Usage: npm run build:static
  */
 
-const fs = require('fs');
-const path = require('path');
-const { spawnSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { spawnSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const OUTPUT_DIR = process.argv[2] || 'dist';
 
