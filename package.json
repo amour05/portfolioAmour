@@ -4,7 +4,9 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "build:static": "node scripts/static-generate.js dist",
+        "build:gh-pages": "npm run build && npm run build:static"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",

@@ -1,0 +1,139 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: ['8.2']
+        node-version: ['20']
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Setup PHP
+      - name: Setup PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, pdo, pdo_sqlite, bcmath
+          tools: composer:latest
+
+      # 3. Get Composer cache directory
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      # 4. Cache Composer dependencies
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      # 5. Install PHP dependencies
+      - name: Install PHP dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader
+          composer dump-autoload
+
+      # 6. Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      # 7. Install NPM dependencies
+      - name: Install NPM dependencies
+        run: npm ci
+
+      # 8. Create .env file for Laravel
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+          php artisan key:generate --no-interaction
+
+      # 9. Build Vite assets
+      - name: Build Vite assets
+        run: npm run build
+
+      # 10. Setup SQLite database for static generation
+      - name: Setup SQLite database
+        run: |
+          touch database/portfolio.sqlite
+          php artisan migrate --database=sqlite --force --no-interaction
+
+      # 11. Seed database with test data (optional)
+      - name: Seed database
+        run: php artisan db:seed --force --no-interaction
+        continue-on-error: true
+
+      # 12. Start Laravel development server in background
+      - name: Start Laravel server
+        run: |
+          php artisan serve --host=localhost --port=8000 &
+          sleep 3
+
+      # 13. Generate static site
+      - name: Generate static site
+        run: npm run build:static
+        env:
+          APP_ENV: production
+          APP_DEBUG: false
+
+      # 14. Create GitHub Pages configuration
+      - name: Configure GitHub Pages
+        run: |
+          # Create CNAME file if you have a custom domain
+          # echo "your-domain.com" > dist/CNAME
+          
+          # Create .gitignore for dist/
+          cat > dist/.gitignore << EOF
+          .DS_Store
+          *.log
+          node_modules/
+          storage/
+          .env
+          EOF
+
+      # 15. Upload artifact
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: 'dist/'
+          retention-days: 7
+
+      # 16. Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+
+      # 17. Display deployment info
+      - name: Deployment Summary
+        run: |
+          echo "✅ GitHub Pages deployment summary:"
+          echo "📌 Repository: ${{ github.repository }}"
+          echo "🌐 Pages URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          echo "📁 Source: dist/"
+          echo ""
+          ls -la dist/ | head -20
