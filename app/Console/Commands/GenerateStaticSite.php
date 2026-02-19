@@ -72,16 +72,22 @@ class GenerateStaticSite extends Command
 
     private function generateRoute($client, $route, $outputDir)
     {
-        $response = $client->get(ltrim($route, '/'));
-        $html = (string) $response->getBody();
+        try {
+            $response = $client->get(ltrim($route, '/'));
+            $html = (string) $response->getBody();
+        } catch (Exception $e) {
+            throw new Exception("Failed to fetch route: " . $e->getMessage());
+        }
 
         // Déterminer le chemin du fichier
         if ($route === '/') {
             $filePath = "{$outputDir}/index.html";
+            $dir = $outputDir;
         } else {
-            $dir = "{$outputDir}" . dirname($route);
+            // Create proper directory structure: /about -> dist/about/
+            $dir = "{$outputDir}{$route}";
             File::ensureDirectoryExists($dir);
-            $filePath = "{$outputDir}{$route}/index.html";
+            $filePath = "{$dir}/index.html";
         }
 
         File::put($filePath, $html);

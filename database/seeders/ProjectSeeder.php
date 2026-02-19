@@ -10,19 +10,44 @@ class ProjectSeeder extends Seeder
 {
     public function run(): void
     {
-        $source = public_path('images/projets/vitrine.png');
-        $target = 'projects/vitrine.png';
-
-        if (file_exists($source)) {
-            Storage::disk('public')->put($target, fopen($source, 'r'));
-        }
+        // Create sample projects for static site generation
+        Project::create([
+            'title' => 'Vitrine Personnel',
+            'description' => 'Mon portfolio personnel mettant en avant mes compétences et réalisations.',
+            'type' => 'Web Application',
+            'langages' => 'PHP, JavaScript, HTML, CSS',
+            'framework' => 'Laravel 12',
+            'outils' => 'Git, Composer, npm, Vite',
+            'environnement' => 'Cloud',
+            'database' => 'PostgreSQL, SQLite',
+            'source_link' => 'https://github.com/amour05/portfolioAmour',
+            'is_published' => true,
+        ]);
 
         Project::create([
-            'title' => 'Vitrine Test',
-            'description' => 'Projet vitrine avec image locale.',
-            'type' => 'site',
-            'image' => $target,
-            'source_link' => 'https://github.com/amour/vitrine',
+            'title' => 'Application E-commerce',
+            'description' => 'Platform e-commerce avec gestion de produits, panier et paiement intégré.',
+            'type' => 'E-commerce',
+            'langages' => 'PHP, JavaScript',
+            'framework' => 'Laravel',
+            'outils' => 'Stripe API, Docker',
+            'environnement' => 'Production',
+            'database' => 'PostgreSQL',
+            'source_link' => null,
+            'is_published' => true,
+        ]);
+
+        Project::create([
+            'title' => 'API REST Microservices',
+            'description' => 'API REST scalable pour intégration avec plusieurs clients et services externes.',
+            'type' => 'API',
+            'langages' => 'PHP, JSON, REST',
+            'framework' => 'Laravel',
+            'outils' => 'JWT, API Documentation',
+            'environnement' => 'Kubernetes',
+            'database' => 'PostgreSQL',
+            'source_link' => null,
+            'is_published' => true,
         ]);
     }
 }
