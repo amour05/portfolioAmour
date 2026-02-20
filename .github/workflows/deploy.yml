@@ -1,284 +1,32 @@
-name: Deploy Static Site to GitHub Pages (Main Branch)
+name: Deploy Laravel Static to GitHub Pages (main)
 
 on:
   push:
     branches:
       - main
-      - source
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-concurrency:
-  group: deploy
-  cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
 
     steps:
-      # 1. Checkout repository
-      - name: Checkout source code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: source
-        continue-on-error: true
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      # If 'source' branch doesn't exist, checkout 'main'
-      - name: Fallback to main branch
-        if: failure()
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: main
-
-      # 2. Setup PHP 8.2
-      - name: Setup PHP 8.2
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: curl, gd, json, mbstring, pdo, pdo_sqlite, sqlite3, tokenizer, xml, zip
-          tools: composer:latest
 
-      # 3. Setup Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      # 4. Install PHP dependencies
-      - name: Install PHP dependencies
+      - name: Install dependencies
         run: composer install --no-dev --optimize-autoloader
-        continue-on-error: true
 
-      # 5. Install Node dependencies
-      - name: Install Node dependencies
-        run: npm install
+      - name: Build static site
+        run: php artisan export --output=./
 
-      # 6. Build assets with Vite
-      - name: Build assets with Vite
-        run: npm run build
-        env:
-          NODE_ENV: production
-
-      # 7. Create .env file
-      - name: Create .env file
+      - name: Ensure index.html exists
         run: |
-          if [ ! -f ".env" ]; then
-            cp .env.example .env 2>/dev/null || echo "APP_NAME=Portfolio" > .env
-          fi
-          echo "APP_ENV=production" >> .env
-          echo "APP_DEBUG=false" >> .env
-          php artisan key:generate --show 2>/dev/null || echo "key_not_needed" > /dev/null
-
-      # 8. Setup SQLite database
-      - name: Setup database
-        run: |
-          mkdir -p database
-          touch database/portfolio.sqlite
-          php artisan migrate --database=sqlite --force --no-interaction 2>/dev/null || true
-          php artisan db:seed --force --no-interaction 2>/dev/null || true
-
-      # 9. Generate static site (direct rendering, no HTTP requests)
-      - name: Generate static site
-        run: |
-          php artisan static:generate --output=dist
-          echo "✅ Static site generated"
-          ls -la dist/ | head -20
-
-      # 10. Verify index.html exists
-      - name: Verify build
-        run: |
-          if [ ! -f "dist/index.html" ]; then
-            echo "❌ ERROR: dist/index.html not found!"
+          if [ ! -f "./index.html" ]; then
+            echo "Erreur: aucun index.html généré à la racine"
             exit 1
           fi
-          echo "✅ dist/index.html verified"
-          wc -l dist/index.html
-
-      # 11. Setup git credentials
-      - name: Setup git
-        run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      # 12. Prepare deployment to main branch
-      - name: Prepare main branch for deployment
-        run: |
-          # Create a temporary directory for the build
-          mkdir -p /tmp/deploy
-          cp -r dist/* /tmp/deploy/
-          
-          # Keep .github/ for future deployments
-          if [ -d ".github" ]; then
-            cp -r .github /tmp/deploy/
-          fi
-          
-          # Checkout main branch for deployment
-          git fetch origin main:main 2>/dev/null || git branch -m main
-          git checkout main
-          
-          # Remove old files but keep .github/
-          find . -maxdepth 1 -type f ! -name "CNAME" ! -name ".gitignore" ! -name "LICENSE" ! -name "README.md" -delete
-          find . -mindepth 1 -maxdepth 1 -type d ! -name ".github" ! -name ".git" -exec rm -rf {} + 2>/dev/null || true
-          
-          # Copy new build
-          cp -r /tmp/deploy/* .
-          
-          echo "✅ Repository prepared for deployment"
-
-      # 13. Ensure .nojekyll exists
-      - name: Configure for GitHub Pages
-        run: |
-          # Create .nojekyll to prevent Jekyll processing
-          touch .nojekyll
-          
-          # Create _config.yml to skip Jekyll processing
-          cat > _config.yml << 'EOF'
-          # GitHub Pages Jekyll configuration
-          # This file tells GitHub Pages to skip Jekyll processing
-          # See: https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages#static-site-generators
-          
-          # Skip Jekyll processing entirely - we use a static pre-built site
-          skip_jekyll: true
-          
-          # Include hidden files in build
-          include:
-            - .nojekyll
-          EOF
-          
-          echo "✅ GitHub Pages configured (.nojekyll + _config.yml)"
-
-      # 14. Create deployment .gitignore
-      - name: Create .gitignore for static site
-        run: |
-          cat > .gitignore << 'EOF'
-          # Build files
-          /dist/
-          /node_modules/
-          /vendor/
-          npm-debug.log
-          yarn-error.log
-          
-          # Laravel
-          .env
-          .env.*.php
-          .env.*.local
-          /storage/
-          /bootstrap/cache/
-          
-          # IDE & OS
-          .vscode/
-          .idea/
-          .DS_Store
-          *.swp
-          *.swo
-          *~
-          
-          # Source files (shouldn't be deployed)
-          /app/
-          /config/
-          /database/
-          /resources/
-          /routes/
-          /tests/
-          /scripts/
-          /public/
-          artisan
-          composer.json
-          composer.lock
-          package.json
-          package-lock.json
-          vite.config.js
-          tailwind.config.js
-          postcss.config.js
-          EOF
-          
-          echo "✅ .gitignore created"
-
-      # 15. Verify deployment files
-      - name: Verify deployment
-        run: |
-          echo "📁 Files at repository root:"
-          ls -la | grep -E "^-" | head -20
-          
-          echo ""
-          echo "📁 Directories:"
-          ls -d */ 2>/dev/null | head -10
-          
-          echo ""
-          if [ -f "index.html" ]; then
-            echo "✅ index.html found at root"
-            echo "📄 index.html size: $(wc -c < index.html) bytes"
-          else
-            echo "❌ ERROR: index.html not found!"
-            exit 1
-          fi
-          
-          if [ -f ".nojekyll" ]; then
-            echo "✅ .nojekyll found"
-          else
-            echo "❌ ERROR: .nojekyll not found!"
-            exit 1
-          fi
-
-      # 16. Check for changes
-      - name: Check for changes
-        id: changes
-        run: |
-          if git diff --quiet; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "ⓘ No changes detected"
-          else
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "✅ Changes detected - will commit and push"
-            git status
-          fi
-
-      # 17. Commit and push to main
-      - name: Commit and push to main
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          # Add all files
-          git add -A
-          
-          # Commit with timestamp
-          git commit -m "🚀 Deploy: Update static site
-
-          - Generated static HTML from Laravel views
-          - Deployed to main branch
-          - Timestamp: $(date +'%Y-%m-%d %H:%M:%S UTC')" --allow-empty
-          
-          # Push to main branch
-          git push -u origin main
-
-      # 18. Deployment summary
-      - name: Deployment summary
-        if: always()
-        run: |
-          echo "═══════════════════════════════════════"
-          echo "✅ DEPLOYMENT SUMMARY"
-          echo "═══════════════════════════════════════"
-          echo "📌 Repository: ${{ github.repository }}"
-          echo "🌿 Branch: main"
-          echo "🌐 GitHub Pages URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
-          echo "📄 Index: index.html (at root)"
-          echo ""
-          echo "📁 Root files count: $(find . -maxdepth 1 -type f | wc -l)"
-          echo ""
-          if [ -f "index.html" ]; then
-            echo "✅ index.html verified"
-          else
-            echo "❌ index.html NOT found"
-          fi
-          if [ -f ".nojekyll" ]; then
-            echo "✅ .nojekyll verified"
-          else
-            echo "⚠️  .nojekyll NOT found"
-          fi
-          echo "═══════════════════════════════════════"
